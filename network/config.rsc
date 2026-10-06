@@ -1,7 +1,3 @@
-# 2026-08-08 13:33:50 by RouterOS 7.23.3
-#
-# mikrotik hex S
-
 /interface bridge
 add comment="LAN Bridge" name=bridge vlan-filtering=yes
 add comment="WAN & IPTV" igmp-snooping=yes igmp-version=3 name=wan-bridge
@@ -23,6 +19,7 @@ add comment="Wi-Fi VLAN" interface=bridge name=wi-fi vlan-id=50
 add name=LAN
 add name=WAN
 
+# Create IP pools for different subnets.
 /ip pool
 add name=lan-pool ranges=10.8.8.30-10.8.8.62
 add name=personal-pool ranges=172.24.30.128-172.24.30.254
@@ -66,6 +63,8 @@ add address=172.24.50.0/24 dns-server=172.24.40.2,8.8.8.8 gateway=172.24.50.1
 /ip firewall address-list
 add address=172.24.30.0/24 comment="personal network" list=whitelist
 add address=10.8.8.0/26 comment="lan network" list=whitelist
+
+# Firewall settings
 /ip firewall filter
 add action=drop chain=input comment="drop blacklist" log=yes log-prefix=\
     IN-BLACKLIST src-address-list=blacklist
@@ -77,7 +76,7 @@ add action=add-src-to-address-list address-list=blacklist \
     address-list-timeout=1w chain=input comment="detect port scanners" \
     protocol=tcp psd=21,3s,3,1
 add action=accept chain=input comment="allow zenbook" src-mac-address=\
-    6C:2F:80:F4:F5:EC
+    LA:PT:OP:MA:CC:CC
 add action=accept chain=input comment="allow wifi DHCP" dst-port=67 protocol=\
     udp src-address=172.24.50.0/24
 add action=accept chain=input comment="allow wifi DNS TCP" dst-port=53 \
@@ -119,6 +118,8 @@ add action=drop chain=forward comment=\
     FWD-BLOCK-WAN
 /ip firewall nat
 add action=masquerade chain=srcnat out-interface-list=WAN
+
+# Disable unused services.
 /ip service
 set ftp disabled=yes
 set telnet disabled=yes
@@ -127,20 +128,25 @@ set ssh address=10.8.8.0/26,172.24.30.0/24,172.24.50.0/24 port=2202
 set winbox address=10.8.8.0/26,172.24.30.0/24,172.24.50.0/24
 set api disabled=yes
 set api-ssl disabled=yes
+
+# Harden ssh
 /ip ssh
 set strong-crypto=yes
+
 /ipv6 nd
 # automatic dns option advertising is not started, re-apply dns config
 set [ find default=yes ] advertise-dns=yes
+
+# System settings
 /system clock
 set time-zone-name=Asia/Tbilisi
 /system ntp client
 set enabled=yes
 /system ntp client servers
 add address=time.cloudflare.com
+
+# Restrict access to router from other sources
 /tool mac-server
 set allowed-interface-list=LAN
 /tool mac-server mac-winbox
 set allowed-interface-list=LAN
-/tool sniffer
-set file-name=sniff-cam filter-interface=bridge
